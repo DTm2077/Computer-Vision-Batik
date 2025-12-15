@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Deteksi Batik</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #4f46e5; /* Indigo */
+            --primary-hover: #4338ca;
+            --bg-color: #f3f4f6;
+            --text-color: #1f2937;
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: linear-gradient(135deg, #e0e7ff 0%, #f3f4f6 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            color: var(--text-color);
+        }
+
+        .container {
+            background: white;
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            max-width: 450px;
+            width: 100%;
+            transition: transform 0.3s ease;
+        }
+
+        .container:hover {
+            transform: translateY(-5px);
+        }
+
+        h1 {
+            font-weight: 600;
+            color: #111827;
+            margin-bottom: 10px;
+        }
+
+        p {
+            color: #6b7280;
+            font-size: 0.95rem;
+            margin-bottom: 30px;
+        }
+
+        .upload-area {
+            border: 2px dashed #cbd5e1;
+            padding: 30px 20px;
+            border-radius: 12px;
+            margin-bottom: 25px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background-color: #f9fafb;
+            position: relative;
+        }
+
+        .upload-area:hover, .upload-area.dragover {
+            border-color: var(--primary-color);
+            background-color: #eff6ff;
+        }
+
+        .upload-icon {
+            font-size: 40px;
+            color: #9ca3af;
+            margin-bottom: 10px;
+            display: block;
+        }
+
+        .upload-text {
+            font-size: 0.9rem;
+            color: #6b7280;
+        }
+
+        input[type="file"] {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            opacity: 0;
+            cursor: pointer;
+        }
+
+        .preview-container {
+            display: none;
+            margin-top: 20px;
+            position: relative;
+        }
+
+        img#preview {
+            max-width: 100%;
+            max-height: 300px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            object-fit: contain;
+        }
+
+        .remove-btn {
+            position: absolute;
+            top: -10px;
+            right: -10px;
+            background: #ef4444;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            cursor: pointer;
+            font-weight: bold;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        button#btnPredict {
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 14px 28px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            width: 100%;
+            transition: all 0.2s;
+            box-shadow: 0 4px 6px -1px rgba(79, 70, 229, 0.2);
+            margin-top: 20px;
+        }
+
+        button#btnPredict:hover:not(:disabled) {
+            background: var(--primary-hover);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 8px -1px rgba(79, 70, 229, 0.3);
+        }
+
+        button#btnPredict:active:not(:disabled) {
+            transform: translateY(0);
+        }
+
+        button:disabled {
+            background: #9ca3af;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        /* Hasil Prediksi */
+        .result-card {
+            margin-top: 25px;
+            padding: 20px;
+            background: #f0fdf4; /* Hijau muda lembut */
+            border-radius: 10px;
+            border: 1px solid #bbf7d0;
+            display: none; /* Tersembunyi default */
+            animation: fadeIn 0.5s;
+        }
+
+        .result-title {
+            font-size: 0.9rem;
+            color: #166534;
+            margin-bottom: 5px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .result-motif {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #15803d;
+            margin: 5px 0;
+        }
+
+        .result-confidence {
+            font-size: 0.9rem;
+            color: #166534;
+        }
+
+        .error-message {
+            margin-top: 20px;
+            color: #dc2626;
+            font-size: 0.95rem;
+            display: none;
+        }
+
+        /* Animasi Loading */
+        .loader {
+            border: 3px solid #f3f3f3;
+            border-radius: 50%;
+            border-top: 3px solid white;
+            width: 20px;
+            height: 20px;
+            -webkit-animation: spin 1s linear infinite; /* Safari */
+            animation: spin 1s linear infinite;
+            display: inline-block;
+            margin-right: 10px;
+            vertical-align: middle;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>🔬Deteksi Motif Batik🔬</h1>
+        <p>Upload foto gambar batik untuk mengidentifikasi motifnya menggunakan AI.</p>
+
+        <div class="upload-area" id="dropZone">
+            <input type="file" id="fileInput" accept="image/*">
+            <div id="uploadPlaceholder">
+                <span class="upload-icon">☁️</span>
+                <div class="upload-text">Klik atau seret foto ke sini</div>
+                <div style="font-size: 0.8rem; color: #9ca3af; margin-top: 5px;">Format: JPG, PNG</div>
+            </div>
+        </div>
+
+        <div class="preview-container" id="previewContainer">
+            <button class="remove-btn" onclick="resetUpload()">×</button>
+            <img id="preview" src="">
+        </div>
+
+        <button onclick="predict()" id="btnPredict" disabled>Analisa Batik</button>
+
+        <div class="result-card" id="resultCard">
+            <div class="result-title">Hasil Identifikasi</div>
+            <div class="result-motif" id="motifName">-</div>
+            <div class="result-confidence" id="confidenceValue">-</div>
+        </div>
+
+        <div class="error-message" id="errorMessage"></div>
+    </div>
+
+    <script>
+        const API_URL = "https://dtm112-compvis.hf.space/predict"; 
+
+        const fileInput = document.getElementById('fileInput');
+        const preview = document.getElementById('preview');
+        const previewContainer = document.getElementById('previewContainer');
+        const uploadPlaceholder = document.getElementById('uploadPlaceholder');
+        const uploadArea = document.getElementById('dropZone');
+        const btnPredict = document.getElementById('btnPredict');
+        const resultCard = document.getElementById('resultCard');
+        const motifName = document.getElementById('motifName');
+        const confidenceValue = document.getElementById('confidenceValue');
+        const errorMessage = document.getElementById('errorMessage');
+
+        fileInput.addEventListener('change', function(e) {
+            handleFile(this.files[0]);
+        });
+
+
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            uploadArea.addEventListener(eventName, preventDefaults, false);
+        });
+
+        function preventDefaults(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+
+        ['dragenter', 'dragover'].forEach(eventName => {
+            uploadArea.addEventListener(eventName, highlight, false);
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            uploadArea.addEventListener(eventName, unhighlight, false);
+        });
+
+        function highlight(e) {
+            uploadArea.classList.add('dragover');
+        }
+
+        function unhighlight(e) {
+            uploadArea.classList.remove('dragover');
+        }
+
+        uploadArea.addEventListener('drop', handleDrop, false);
+
+        function handleDrop(e) {
+            const dt = e.dataTransfer;
+            const files = dt.files;
+            handleFile(files[0]);
+        }
+
+        function handleFile(file) {
+            if (file) {
+
+                if (!file.type.startsWith('image/')) {
+                    showError("Upload file gambar (JPG/PNG).");
+                    return;
+                }
+
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    preview.src = e.target.result;
+                    previewContainer.style.display = 'block';
+                    uploadArea.style.display = 'none';
+                    btnPredict.disabled = false;
+
+                    resultCard.style.display = 'none';
+                    errorMessage.style.display = 'none';
+                }
+                reader.readAsDataURL(file);
+
+                fileInput.files_dropped = file; 
+            }
+        }
+
+        function resetUpload() {
+            fileInput.value = "";
+            fileInput.files_dropped = null;
+            preview.src = "";
+            previewContainer.style.display = 'none';
+            uploadArea.style.display = 'block';
+            btnPredict.disabled = true;
+            resultCard.style.display = 'none';
+            errorMessage.style.display = 'none';
+        }
+
+        function showError(msg) {
+            errorMessage.innerText = msg;
+            errorMessage.style.display = 'block';
+            resultCard.style.display = 'none';
+        }
+
+        async function predict() {
+
+            const file = fileInput.files[0] || fileInput.files_dropped;
+
+            if (!file) {
+                showError("Gambar harus dipilih terlebih dahulu!");
+                return;
+            }
+
+            const originalBtnText = btnPredict.innerText;
+            btnPredict.disabled = true;
+            btnPredict.innerHTML = '<div class="loader"></div> Memproses...';
+            errorMessage.style.display = 'none';
+            resultCard.style.display = 'none';
+
+            const formData = new FormData();
+            formData.append("file", file);
+
+            try {
+
+                if (!API_URL) throw new Error("URL API belum dikonfigurasi.");
+
+                const response = await fetch(API_URL, {
+                    method: "POST",
+                    body: formData
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Server Error (${response.status})`);
+                }
+
+                const data = await response.json();
+
+                motifName.innerText = data.class || "Tidak Teridentifikasi";
+                
+                const confPercent = data.confidence ? (parseFloat(data.confidence) * 100).toFixed(1) + "%" : "-";
+                confidenceValue.innerText = `Tingkat Keyakinan: ${confPercent}`;
+                
+                resultCard.style.display = 'block';
+
+            } catch (error) {
+                console.error("Error:", error);
+                showError("Gagal menghubungi server AI. Pastikan backend aktif.");
+            } finally {
+                btnPredict.disabled = false;
+                btnPredict.innerText = originalBtnText;
+            }
+        }
+    </script>
+</body>
+</html>
+
